@@ -59,31 +59,21 @@ export default function InicioScreen() {
               <Text style={styles.nomeReceita}>
                 {receita?.nome ?? "Nenhuma receita escolhida"}
               </Text>
-              <Pressable
-                style={[
-                  styles.botaoReceita,
-                  !receita && styles.botaoDesativado,
-                ]}
-                disabled
-                accessibilityRole="button"
-                accessibilityState={{ disabled: true }}
-                accessibilityLabel={
-                  "Escolher receita quando a rota de Receitas estiver integrada"
-                }
-              >
-                <Text style={styles.textoBotaoReceita}>
-                  {receita ? "Receita planejada" : "Escolher receita"}
-                </Text>
-              </Pressable>
+              <Link href="./receitas" asChild>
+                <Pressable
+                  style={styles.botaoReceita}
+                  accessibilityRole="button"
+                  accessibilityLabel="Abrir pesquisa de receitas"
+                >
+                  <Text style={styles.textoBotaoReceita}>
+                    {receita ? "Ver receitas" : "Escolher receita"}
+                  </Text>
+                </Pressable>
+              </Link>
             </View>
           </View>
         );
       })}
-      <Text style={styles.avisoReceitas}>
-        A escolha de receitas ficará disponível quando Ayala integrar a rota de
-        Receitas.
-      </Text>
-
       <View style={styles.cartaoPlanejamento}>
         <View style={styles.linhaPlanejamento}>
           <View>
@@ -202,15 +192,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 11,
     paddingVertical: 7,
-  },
-  botaoDesativado: {
-    opacity: 0.72,
-  },
-  avisoReceitas: {
-    color: "#929A96",
-    fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 6,
   },
   textoBotaoReceita: {
     color: "#8DD9A6",

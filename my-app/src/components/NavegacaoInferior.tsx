@@ -1,9 +1,9 @@
-import { usePathname, useRouter } from "expo-router";
+import { type Href, usePathname, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 const ABAS = [
   { nome: "Início", icone: "⌂", rota: "/" },
-  { nome: "Receitas", icone: "◉", rota: null },
+  { nome: "Receitas", icone: "◇", rota: "/receitas" },
   { nome: "Planejamento", icone: "▦", rota: null },
   { nome: "Lista", icone: "☷", rota: "/lista" },
   { nome: "Perfil", icone: "●", rota: "/perfil" },
@@ -16,7 +16,10 @@ export default function NavegacaoInferior() {
   return (
     <View style={styles.barra} accessibilityRole="tablist">
       {ABAS.map((aba) => {
-        const ativa = aba.rota !== null && caminho === aba.rota;
+        const ativa =
+          aba.rota !== null &&
+          (caminho === aba.rota ||
+            (aba.rota === "/receitas" && caminho.startsWith("/receitas/")));
         const desativada = aba.rota === null;
 
         return (
@@ -25,7 +28,7 @@ export default function NavegacaoInferior() {
             style={styles.item}
             disabled={desativada}
             onPress={() => {
-              if (aba.rota) roteador.push(aba.rota);
+              if (aba.rota) roteador.push(aba.rota as Href);
             }}
             accessibilityRole="tab"
             accessibilityLabel={
