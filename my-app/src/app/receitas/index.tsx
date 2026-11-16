@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,10 +13,23 @@ import {
 } from "react-native";
 import { buscarReceitas } from "../../services/theMealDb";
 import type { ReceitaResumo } from "../../types/receita";
+import { usePlanejamento } from "../../contexts/PlanejamentoContext";
+import { dataValida, tipoRefeicaoValido, REFEICOES } from "../../types/planejamento";
 
 const SUGESTOES = ["Frango", "Massa", "Carne", "Salmão"];
 
 export default function ReceitasScreen() {
+  const { data, refeicao } = useLocalSearchParams<{ data?: string; refeicao?: string }>();
+  const roteador = useRouter();
+  const { pronto, salvando, erro, atribuir, carregar } = usePlanejamento();
+  const selecionando = dataValida(data) && tipoRefeicaoValido(refeicao);
+
+  function selecionar(receita: ReceitaResumo) {
+    if (!dataValida(data) || !tipoRefeicaoValido(refeicao)) return;
+    if (atribuir(data, refeicao, receita)) {
+      roteador.dismissTo({ pathname: "/planejamento", params: { data } });
+    }
+  }
   const [termo, setTermo] = useState("frango");
   const [receitas, setReceitas] = useState<ReceitaResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -97,6 +110,16 @@ export default function ReceitasScreen() {
             Encontre uma ideia, confira os ingredientes e prepare sua próxima refeição.
           </Text>
 
+          {selecionando ? (
+            <View style={styles.selecao}>
+              <Text style={styles.nomeReceita}>{REFEICOES[refeicao]} · {data.split("-").reverse().join("/")}</Text>
+              <Text style={styles.subtitulo}>Selecione uma receita e depois confirme em Salvar planejamento. A seleção ainda não será salva.</Text>
+              {erro ? <Text style={styles.mensagem} accessibilityLiveRegion="polite">{erro}</Text> : null}
+              {!pronto && erro ? <Pressable accessibilityRole="button" style={styles.acaoSelecao} onPress={() => void carregar()}><Text style={styles.textoSugestao}>Tentar carregar planejamento novamente</Text></Pressable> : null}
+              <Pressable accessibilityRole="button" style={styles.acaoSelecao} onPress={() => roteador.dismissTo({ pathname: "/planejamento", params: { data } })}><Text style={styles.textoSugestao}>Cancelar seleção</Text></Pressable>
+            </View>
+          ) : null}
+
           <View style={styles.areaBusca}>
             <TextInput
               style={styles.campoBusca}
@@ -154,6 +177,7 @@ export default function ReceitasScreen() {
         </View>
       }
       renderItem={({ item }) => (
+        <View>
         <Link
           href={{
             pathname: "/receitas/[id]",
@@ -201,6 +225,12 @@ export default function ReceitasScreen() {
             <Text style={styles.seta}>›</Text>
           </Pressable>
         </Link>
+        {selecionando ? (
+          <Pressable disabled={!pronto || salvando} accessibilityRole="button" accessibilityLabel={`Selecionar ${item.nome} para ${REFEICOES[refeicao]}`} onPress={() => void selecionar(item)} style={[styles.acaoSelecao, (!pronto || salvando) && { opacity: 0.4 }]}>
+            <Text style={styles.textoSugestao}>{salvando ? "Salvando..." : "Selecionar receita"}</Text>
+          </Pressable>
+        ) : null}
+        </View>
       )}
       ListEmptyComponent={
         carregando ? (
@@ -227,6 +257,8 @@ export default function ReceitasScreen() {
 }
 
 const styles = StyleSheet.create({
+  selecao: { backgroundColor: "#222222", borderRadius: 16, borderWidth: 1, borderColor: "#43614D", padding: 14, marginTop: 16 },
+  acaoSelecao: { backgroundColor: "#293A2F", borderRadius: 10, padding: 12, minHeight: 44, justifyContent: "center", marginBottom: 12 },
   tela: {
     backgroundColor: "#161616",
     flex: 1,

@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react';
 import {
   Keyboard,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEstadoNotificacoes } from '../hooks/useNotificacoes';
+import { agendarNotificacaoDeTeste, definirNotificacoes, sincronizarNotificacoes } from '../services/notificacoes';
 
 const CHAVE_NOME = '@planeja-sua-fome:nome';
 
 export default function PerfilScreen() {
+  const notificacoes = useEstadoNotificacoes();
+  const [mensagemNotificacao, setMensagemNotificacao] = useState('');
   const [nome, setNome] = useState('');
   const [nomeSalvo, setNomeSalvo] = useState('');
   const [mensagem, setMensagem] = useState('');
@@ -120,6 +126,30 @@ export default function PerfilScreen() {
         ) : null}
       </View>
 
+      <View style={styles.cartao}>
+        <Text style={styles.tituloCartao}>Notificações</Text>
+        <View style={styles.linhaNotificacao}>
+          <Text style={styles.rotuloNotificacao}>Lembrete diário às 7h</Text>
+          <Switch
+            value={notificacoes.habilitado}
+            disabled={!notificacoes.disponivel || !notificacoes.carregado || notificacoes.ocupado}
+            onValueChange={(valor) => { setMensagemNotificacao(''); void definirNotificacoes(valor); }}
+            trackColor={{ false: '#414B45', true: '#8DD9A6' }}
+            thumbColor="#F4F7F4"
+            accessibilityLabel="Lembrete diário às 7h"
+          />
+        </View>
+        <Text style={styles.descricao}>Receba uma notificação às 7h nos dias em que houver refeições planejadas.</Text>
+        {!notificacoes.disponivel ? <Text style={styles.descricao}>Os lembretes locais estão disponíveis na versão Android.</Text> : null}
+        {notificacoes.ocupado ? <Text style={styles.descricao} accessibilityLiveRegion="polite">Sincronizando lembretes...</Text> : null}
+        {notificacoes.erro ? <Text style={[styles.mensagem, styles.mensagemErro]} accessibilityLiveRegion="polite">{notificacoes.erro}</Text> : null}
+        {notificacoes.permissaoNegada ? <Pressable accessibilityRole="button" style={styles.botaoSecundario} onPress={() => { void Linking.openSettings().catch(() => setMensagemNotificacao('Abra as configurações do Android para permitir notificações deste aplicativo.')); }}><Text style={styles.mensagemSucesso}>Abrir configurações do Android</Text></Pressable> : null}
+        {notificacoes.disponivel && notificacoes.erro ? <Pressable accessibilityRole="button" disabled={notificacoes.ocupado} style={styles.botaoSecundario} onPress={() => void sincronizarNotificacoes()}><Text style={styles.mensagemSucesso}>Verificar lembretes novamente</Text></Pressable> : null}
+        {notificacoes.preferencia && !notificacoes.habilitado ? <Pressable accessibilityRole="button" disabled={notificacoes.ocupado} style={styles.botaoSecundario} onPress={() => void definirNotificacoes(false)}><Text style={styles.mensagemSucesso}>Desativar lembretes</Text></Pressable> : null}
+        {__DEV__ && notificacoes.disponivel ? <Pressable accessibilityRole="button" disabled={!notificacoes.habilitado || notificacoes.ocupado} style={styles.botaoSecundario} onPress={() => { void agendarNotificacaoDeTeste().then(() => setMensagemNotificacao('Teste solicitado. Confira o status acima e aguarde cerca de 10 segundos.')) }}><Text style={styles.mensagemSucesso}>Testar notificação em 10 segundos (desenvolvimento)</Text></Pressable> : null}
+        {mensagemNotificacao ? <Text style={styles.descricao} accessibilityLiveRegion="polite">{mensagemNotificacao}</Text> : null}
+      </View>
+
       <View style={styles.cartaoSobre}>
         <Text style={styles.rotuloSobre}>SOBRE</Text>
         <Text style={styles.tituloCartao}>Sobre o aplicativo</Text>
@@ -133,6 +163,9 @@ export default function PerfilScreen() {
 }
 
 const styles = StyleSheet.create({
+  linhaNotificacao: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginVertical: 8 },
+  rotuloNotificacao: { color: '#F4F7F4', fontSize: 15, flex: 1 },
+  botaoSecundario: { minHeight: 44, justifyContent: 'center', paddingVertical: 10 },
   container: {
     flex: 1,
     backgroundColor: '#161616',

@@ -1,10 +1,11 @@
 import { type Href, usePathname, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { usePlanejamento } from "../contexts/PlanejamentoContext";
 
 const ABAS = [
   { nome: "Início", icone: "⌂", rota: "/" },
   { nome: "Receitas", icone: "◇", rota: "/receitas" },
-  { nome: "Planejamento", icone: "▦", rota: null },
+  { nome: "Planejamento", icone: "▦", rota: "/planejamento" },
   { nome: "Lista", icone: "☷", rota: "/lista" },
   { nome: "Perfil", icone: "●", rota: "/perfil" },
 ] as const;
@@ -12,35 +13,34 @@ const ABAS = [
 export default function NavegacaoInferior() {
   const caminho = usePathname();
   const roteador = useRouter();
+  const { podeSair, salvando } = usePlanejamento();
 
   return (
     <View style={styles.barra} accessibilityRole="tablist">
       {ABAS.map((aba) => {
-        const ativa =
-          aba.rota !== null &&
-          (caminho === aba.rota ||
-            (aba.rota === "/receitas" && caminho.startsWith("/receitas/")));
-        const desativada = aba.rota === null;
+        const ativa = caminho === aba.rota ||
+          (aba.rota === "/receitas" && caminho.startsWith("/receitas/")) ||
+          (aba.rota === "/planejamento" && caminho === "/meus-planejamentos");
 
         return (
           <Pressable
             key={aba.nome}
             style={styles.item}
-            disabled={desativada}
-            onPress={() => {
-              if (aba.rota) roteador.push(aba.rota as Href);
+            disabled={salvando}
+            onPress={async () => {
+              if (caminho === aba.rota) return;
+              if (aba.rota === "/planejamento" && caminho.startsWith("/receitas")) {
+                roteador.dismissTo("/planejamento");
+              } else if (await podeSair()) roteador.push(aba.rota as Href);
             }}
             accessibilityRole="tab"
-            accessibilityLabel={
-              desativada ? `${aba.nome}, ainda não integrada` : aba.nome
-            }
-            accessibilityState={{ selected: ativa, disabled: desativada }}
+            accessibilityLabel={aba.nome}
+            accessibilityState={{ selected: ativa }}
           >
             <Text
               style={[
                 styles.icone,
                 ativa && styles.selecionado,
-                desativada && styles.indisponivel,
               ]}
             >
               {aba.icone}
@@ -49,7 +49,6 @@ export default function NavegacaoInferior() {
               style={[
                 styles.nome,
                 ativa && styles.selecionado,
-                desativada && styles.indisponivel,
               ]}
             >
               {aba.nome}
@@ -92,8 +91,5 @@ const styles = StyleSheet.create({
   },
   selecionado: {
     color: "#8DD9A6",
-  },
-  indisponivel: {
-    opacity: 0.45,
   },
 });

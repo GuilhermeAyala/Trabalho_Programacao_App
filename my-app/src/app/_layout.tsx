@@ -1,10 +1,15 @@
 import { Stack } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import NavegacaoInferior from "../components/NavegacaoInferior";
+import { PlanejamentoProvider } from "../contexts/PlanejamentoContext";
+import ObservadorNotificacoes from "../components/ObservadorNotificacoes";
+import AvisoNotificacoes from "../components/AvisoNotificacoes";
 
 export default function RootLayout() {
   return (
-    <View style={styles.container}>
+    <PlanejamentoProvider><View style={styles.container}>
+      <ObservadorNotificacoes />
+      <AvisoNotificacoes />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -12,7 +17,7 @@ export default function RootLayout() {
         }}
       />
       <NavegacaoInferior />
-    </View>
+    </View></PlanejamentoProvider>
   );
 }
 
