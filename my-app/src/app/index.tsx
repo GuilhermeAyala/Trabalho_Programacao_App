@@ -1,7 +1,9 @@
 import { Link } from "expo-router";
-import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { DiaDaSemana, PlanejamentoSemanal } from "../types/planejamento";
+import { usePlanejamento } from "../contexts/PlanejamentoContext";
+import { useAtualizarPlanejamento } from "../hooks/useAtualizarPlanejamento";
+import { chaveData, type DiaDaSemana } from "../types/planejamento";
+import { calcularProgressoSemanal } from "../utils/progressoSemanal";
 
 const DIAS_DA_SEMANA: DiaDaSemana[] = [
   "domingo",
@@ -20,17 +22,12 @@ const REFEICOES = [
 ] as const;
 
 export default function InicioScreen() {
-  const [planejamento] = useState<PlanejamentoSemanal | null>(null);
-  const diaAtual = DIAS_DA_SEMANA[new Date().getDay()];
-  const refeicoesDeHoje = planejamento?.[diaAtual];
-  const diasPlanejados = planejamento
-    ? DIAS_DA_SEMANA.filter((dia) => {
-        const refeicoes = planejamento[dia];
-        return Boolean(
-          refeicoes?.cafeDaManha || refeicoes?.almoco || refeicoes?.jantar,
-        );
-      }).length
-    : 0;
+  const { planos, agora, pronto, erro, carregar } = usePlanejamento();
+  useAtualizarPlanejamento();
+  const diaAtual = DIAS_DA_SEMANA[agora.getDay()];
+  const hoje = chaveData(agora);
+  const refeicoesDeHoje = planos.find((plano) => plano.data === hoje)?.refeicoes;
+  const { diasPlanejados, percentual } = calcularProgressoSemanal(planos, agora);
 
   return (
     <ScrollView style={styles.tela} contentContainerStyle={styles.conteudo}>
@@ -41,6 +38,8 @@ export default function InicioScreen() {
         </View>
         <Text style={styles.data}>{diaAtual}</Text>
       </View>
+
+      {erro ? <Pressable accessibilityRole="button" onPress={() => void carregar()}><Text style={styles.textoPlanejamento}>{erro} Toque para tentar novamente.</Text></Pressable> : !pronto ? <Text style={styles.textoPlanejamento}>Carregando planejamentos...</Text> : null}
 
       <View style={styles.secaoTitulo}>
         <Text style={styles.tituloSecao}>Refeições de hoje</Text>
@@ -59,14 +58,14 @@ export default function InicioScreen() {
               <Text style={styles.nomeReceita}>
                 {receita?.nome ?? "Nenhuma receita escolhida"}
               </Text>
-              <Link href="./receitas" asChild>
+              <Link href={receita ? { pathname: "/receitas/[id]", params: { id: receita.id } } : { pathname: "/planejamento", params: { data: hoje } }} asChild>
                 <Pressable
                   style={styles.botaoReceita}
                   accessibilityRole="button"
-                  accessibilityLabel="Abrir pesquisa de receitas"
+                  accessibilityLabel={receita ? "Ver receita salva" : "Planejar refeições de hoje"}
                 >
                   <Text style={styles.textoBotaoReceita}>
-                    {receita ? "Ver receitas" : "Escolher receita"}
+                    {receita ? "Ver receita" : "Escolher receita"}
                   </Text>
                 </Pressable>
               </Link>
@@ -82,18 +81,18 @@ export default function InicioScreen() {
           </View>
           <Text style={styles.contagemPlanejamento}>{diasPlanejados}/7</Text>
         </View>
-        <View style={styles.trilhoProgresso}>
+        <View style={styles.trilhoProgresso} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 7, now: diasPlanejados }} accessibilityLabel="Dias planejados nesta semana">
           <View
             style={[
               styles.progresso,
-              { width: `${(diasPlanejados / 7) * 100}%` },
+              { width: `${percentual}%` },
             ]}
           />
         </View>
         <Text style={styles.textoPlanejamento}>
-          {diasPlanejados === 0
-            ? "Nenhum dia com refeições planejadas ainda."
-            : `${diasPlanejados} ${diasPlanejados === 1 ? "dia" : "dias"} com refeições planejadas.`}
+          {diasPlanejados === 7 ? "Todos os dias desta semana estão planejados!" : diasPlanejados === 0
+            ? "Nenhum dia com refeições planejadas nesta semana."
+            : `${diasPlanejados} ${diasPlanejados === 1 ? "dia" : "dias"} com refeições planejadas nesta semana.`}
         </Text>
       </View>
 
