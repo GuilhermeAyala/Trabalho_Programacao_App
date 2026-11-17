@@ -1,1 +1,0 @@
-//arquivo e pasta utilizados para constante
